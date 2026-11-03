@@ -15,19 +15,13 @@ const contentSecurityPolicy = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  // La vista previa de GoDaddy sirve el modo desarrollo desde otro dominio; sin esto Next bloquea su JavaScript.
+  allowedDevOrigins: ["*.preview.c37.airoapp.ai", "*.airoapp.ai"],
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,
   images: {
     formats: ["image/avif", "image/webp"],
-  },
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
   },
   async headers() {
     if (process.env.NODE_ENV === "development") return [];
