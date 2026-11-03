@@ -1,0 +1,164 @@
+@import "tailwindcss";
+
+/*
+ * Dos familias con nombre propio a propósito: si compartieran nombre (o se
+ * llamaran como la Circe instalada en Windows) y faltara un peso, el navegador
+ * usaría el otro para todo el texto.
+ */
+@font-face {
+  font-family: "Circe Rounded Titulos";
+  src:
+    local("Circe Rounded Bold"),
+    local("CirceRounded-Bold"),
+    url("/fonts/CirceRounded-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Circe Rounded Texto";
+  src:
+    local("Circe Rounded Medium"),
+    local("CirceRounded-Medium"),
+    url("/fonts/CirceRounded-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --color-brand: #f57d00;
+  --color-brand-dark: #cf3400;
+  --color-brand-deep: #a82a00;
+  --color-accent: #6900ce;
+  --color-ink: #000000;
+  --color-muted: #9f9f9f;
+  --color-silver: #b9b9b9;
+  --color-line: #afafaf;
+  --color-mist: #e8e8e8;
+  --color-cream: #fff6ee;
+
+  --font-sans: "Circe Rounded Texto", var(--font-nunito), ui-rounded, ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Circe Rounded Titulos", var(--font-nunito), ui-rounded, ui-sans-serif, system-ui, sans-serif;
+
+  /* Pequeño a propósito: en escritorio el título no debe tapar la cara de la foto de portada. */
+  --text-display: clamp(2.25rem, 0.25rem + 3.35vw, 4.25rem);
+  --text-display--line-height: 0.9;
+  --text-title: clamp(1.875rem, 1.2rem + 1.6vw, 3.125rem);
+  --text-title--line-height: 1;
+  --text-lead: clamp(1.0625rem, 0.85rem + 0.6vw, 1.5rem);
+  --text-lead--line-height: 1.22;
+  --text-stat: clamp(1.25rem, 0.9rem + 0.85vw, 1.875rem);
+  --text-stat--line-height: 1.15;
+  --text-card: clamp(1.125rem, 0.9rem + 0.55vw, 1.5625rem);
+  --text-card--line-height: 1.16;
+  --text-nav: clamp(1rem, 0.6rem + 0.55vw, 1.3125rem);
+  --text-nav--line-height: 1.2;
+
+  --ease-out-quint: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-out-cubic: cubic-bezier(0.33, 1, 0.68, 1);
+  --ease-in-out-cubic: cubic-bezier(0.645, 0.045, 0.355, 1);
+
+  --shadow-card: 0 0 2px rgb(0 0 0 / 0.06), 0 4px 18px rgb(0 0 0 / 0.08);
+  --shadow-card-hover: 0 0 2px rgb(0 0 0 / 0.06), 0 16px 36px -8px rgb(207 52 0 / 0.22);
+
+  --animate-fade-up: fade-up 600ms var(--ease-out-quint) both;
+  --animate-hero-zoom: hero-zoom 1400ms var(--ease-out-cubic) both;
+  --animate-pulse-ring: pulse-ring 2400ms var(--ease-out-cubic) infinite;
+  --animate-beat: beat 2400ms var(--ease-out-cubic) infinite;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+  }
+
+  @keyframes hero-zoom {
+    from {
+      transform: scale(1.05);
+    }
+  }
+
+  @keyframes pulse-ring {
+    0% {
+      opacity: 0.9;
+      transform: scale(0.6);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(2.6);
+    }
+  }
+
+  @keyframes beat {
+    0%,
+    30%,
+    100% {
+      transform: scale(1);
+    }
+    12% {
+      transform: scale(1.22);
+    }
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 6.5rem;
+}
+
+body {
+  background: #ffffff;
+  color: var(--color-ink);
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3 {
+    font-weight: 700;
+  }
+
+  /* Un título en peso normal necesita la clase font-sans (esta familia solo tiene Bold). */
+  h1,
+  h2,
+  h3,
+  h4,
+  strong,
+  b,
+  .font-bold {
+    font-family: var(--font-display);
+  }
+
+  img {
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+}
+
+::selection {
+  background: var(--color-brand);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Solo se quitan los movimientos grandes; cifras, mapa y corazón siguen animándose a propósito. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-fade-up,
+  .animate-hero-zoom {
+    animation: none;
+  }
+}
