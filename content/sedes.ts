@@ -121,7 +121,7 @@ export const sedes: Record<CountryId, Sede[]> = {
     { name: "Medicina Corporativa de Diálisis Sucursal Petén", city: "Santa Elena", address: "6a. Av. 2-18, Zona 2, Plaza Clarissa" },
     { name: "Medicina Corporativa de Diálisis Sucursal Zacapa", city: "Zacapa", address: "8a. Calle 17-08, Zona 3, Hospital Centro Médico Zacapa, 3er Nivel, Clínicas 301, 302, 303 y 306" },
   ],
-  mexico: [
+  /*mexico: [
     { name: "Hospital ABC", city: "Ciudad de México", address: "Av. Carlos Graef Fernández No. 154, Col. Santa Fe Cuajimalpa" },
     { name: "Hospital MSUR", city: "Ciudad de México", address: "Calle Puente de Piedra No. 150 Int. Torre 3 PB, Col. Toriello Guerra" },
     { name: "Periférico Sur", city: "Ciudad de México", address: "Av. Periférico Sur No. 5578 Int. Local B, Col. el Caracol" },
@@ -134,7 +134,7 @@ export const sedes: Record<CountryId, Sede[]> = {
     { name: "Jurica", city: "Querétaro", address: "Paeo Jurica 109, Int 5, Col Jurica" },
     { name: "San Juan del Río", city: "San Juan del Río", address: "Av. Constituyentes No. 157, Col. Valle de Oro" },
     { name: "San Miguel de Allende", city: "San Miguel de Allende", address: "Libramiento Manuel Zavala No. 160 Int. 107" },
-  ],
+  ],*/
   "republica-dominicana": [
     { name: "Renalhelp HD Rep. Dominicana", city: "Santo Domingo", address: "Av. San Martín No. 202" },
   ],

@@ -53,7 +53,7 @@ const pt: Dictionary = {
 
   countries: {
     colombia: { name: "Colômbia", short: "Colômbia", tagline: "Nossa história, nossa origem.", sedesIn: "Unidades na Colômbia" },
-    mexico: { name: "México", short: "México", tagline: "Mais perto das pessoas.", sedesIn: "Unidades no México" },
+    //mexico: { name: "México", short: "México", tagline: "Mais perto das pessoas.", sedesIn: "Unidades no México" },
     guatemala: { name: "Guatemala", short: "Guatemala", tagline: "Novas oportunidades.", sedesIn: "Unidades na Guatemala" },
     ecuador: { name: "Equador", short: "Equador", tagline: "Compromisso em cada passo.", sedesIn: "Unidades no Equador" },
     brasil: { name: "Brasil", short: "Brasil", tagline: "Saúde renal sem fronteiras.", sedesIn: "Unidades no Brasil" },

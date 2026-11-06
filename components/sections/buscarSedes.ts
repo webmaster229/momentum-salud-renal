@@ -6,7 +6,7 @@ export type SedeEnPais = Sede & { country: CountryId };
 /** Los países en todos los idiomas, para que "Brazil" funcione también en la página en español. */
 const COUNTRY_WORDS: Record<CountryId, string> = {
   colombia: "colombia",
-  mexico: "mexico mejico",
+  //mexico: "mexico mejico",
   guatemala: "guatemala",
   ecuador: "ecuador equador",
   brasil: "brasil brazil",

@@ -21,7 +21,7 @@ export const social = [
 export const stats = {
   pacientes: { value: 45000, prefix: "+", icon: "/images/iconos/atencion.png" },
   sedes: { value: 110, prefix: "+", icon: "/images/iconos/infraestructura.png" },
-  paises: { value: 6, prefix: "", icon: "/images/iconos/presencia.png" },
+  paises: { value: 5, prefix: "", icon: "/images/iconos/presencia.png" },
   anios: { value: 19, prefix: "+", icon: "/images/iconos/calidad.png" },
   red: { value: 1, prefix: "", icon: "/images/iconos/red.png" },
 } as const;
@@ -35,7 +35,7 @@ export type StatId = keyof typeof stats;
  */
 export const countries = [
   { id: "colombia", x: 40.39, y: 24.68, labelX: 34.6, labelEnd: true, labelY: 27.4, sedes: 76, main: true },
-  { id: "mexico", x: 16.97, y: 11.45, labelX: 21.6, labelY: 9.1, sedes: 12 },
+  //{ id: "mexico", x: 16.97, y: 11.45, labelX: 21.6, labelY: 9.1, sedes: 12 },
   { id: "guatemala", x: 25.89, y: 17.59, labelX: 21, labelEnd: true, labelY: 20.3, sedes: 11 },
   { id: "ecuador", x: 35.88, y: 35.18, labelX: 31.2, labelEnd: true, labelY: 36, sedes: 5 },
   { id: "brasil", x: 70.14, y: 43.21, labelX: 76.8, labelY: 48, sedes: 7 },

@@ -52,7 +52,7 @@ const es = {
 
   countries: {
     colombia: { name: "Colombia", short: "Colombia", tagline: "Nuestra historia, nuestro origen.", sedesIn: "Sedes en Colombia" },
-    mexico: { name: "México", short: "México", tagline: "Más cerca de las personas.", sedesIn: "Sedes en México" },
+    //mexico: { name: "México", short: "México", tagline: "Más cerca de las personas.", sedesIn: "Sedes en México" },
     guatemala: { name: "Guatemala", short: "Guatemala", tagline: "Nuevas oportunidades.", sedesIn: "Sedes en Guatemala" },
     ecuador: { name: "Ecuador", short: "Ecuador", tagline: "Compromiso en cada paso.", sedesIn: "Sedes en Ecuador" },
     brasil: { name: "Brasil", short: "Brasil", tagline: "Salud renal sin fronteras.", sedesIn: "Sedes en Brasil" },
@@ -89,7 +89,7 @@ const es = {
   contacto: {
     title: "Contáctanos",
     subtitle: "Déjanos tus datos y te ayudamos a encontrar la sede y la atención que necesitas.",
-    points: ["Te respondemos por correo", "Acompañamiento en 6 países", "Orientación para pacientes y familias"],
+    points: ["Te respondemos por correo", "Acompañamiento en 5 países", "Orientación para pacientes y familias"],
     emailDirect: "Escríbenos directo por correo",
     name: "Nombre completo",
     phone: "Teléfono",
