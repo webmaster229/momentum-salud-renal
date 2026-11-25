@@ -35,7 +35,7 @@ const en: Dictionary = {
   },
 
   stats: {
-    titleHighlight: "MoMentum Salud Renal",
+    titleHighlight: "MoMentum Renal Care",
     title: "in numbers",
     pacientes: "Patients cared for",
     sedes: "Locations",
@@ -53,7 +53,7 @@ const en: Dictionary = {
 
   countries: {
     colombia: { name: "Colombia", short: "Colombia", tagline: "Our history, our origin.", sedesIn: "Locations in Colombia" },
-    //mexico: { name: "Mexico", short: "Mexico", tagline: "Closer to people.", sedesIn: "Locations in Mexico" },
+    mexico: { name: "Mexico", short: "Mexico", tagline: "Closer to people.", sedesIn: "Locations in Mexico" },
     guatemala: { name: "Guatemala", short: "Guatemala", tagline: "New opportunities.", sedesIn: "Locations in Guatemala" },
     ecuador: { name: "Ecuador", short: "Ecuador", tagline: "Commitment at every step.", sedesIn: "Locations in Ecuador" },
     brasil: { name: "Brazil", short: "Brazil", tagline: "Kidney health without borders.", sedesIn: "Locations in Brazil" },
@@ -90,10 +90,10 @@ const en: Dictionary = {
   contacto: {
     title: "Contact us",
     subtitle: "Leave us your details and we'll help you find the location and care you need.",
-    points: ["We reply by email", "Support in 6 countries", "Guidance for patients and families"],
-    emailDirect: "Email us directly",
+    points: ["We reply on WhatsApp", "Support in 6 countries", "Guidance for patients and families"],
+    whatsappDirect: "Message us directly on WhatsApp",
     name: "Full name",
-    phone: "Phone",
+    phone: "Phone / WhatsApp",
     email: "Email",
     optional: "optional",
     country: "Country",
@@ -108,9 +108,8 @@ const en: Dictionary = {
     message: "Message",
     messagePlaceholder: "Tell us how we can help",
     consent: "I authorize the processing of my personal data so you can contact me.",
-    submit: "Send by email",
-    sent: "We opened your email with the message ready: you just need to send it. If it didn't open, write to us at",
-    subject: "Contact from the website",
+    submit: "Send via WhatsApp",
+    sent: "We opened WhatsApp with your message ready to send. Thank you for reaching out!",
     greeting: "Hi, I'd like to receive guidance from Momentum Salud Renal.",
   },
 
@@ -128,16 +127,23 @@ const en: Dictionary = {
     subtitle: "Select a country or use the search to find the location nearest to you.",
     sedesCount: { one: "location", other: "locations" },
     pickCountry: "Choose a country to see its locations",
+    viewSedes: "See locations",
+    prevCountry: "Previous country",
+    nextCountry: "Next country",
     allCountries: "Back to all countries",
     search: "Search location, city or address",
     cities: "Filter by city",
-    allCities: "All cities",
+    allCities: "All",
     noResults: "We couldn't find any locations matching your search.",
-    elsewhere: "No matches here. These locations are somewhere else:",
-    openMap: "View on Google Maps",
-    prevSede: "Previous location",
-    nextSede: "Next location",
-    page: "{current} of {total}",
+    sedeName: "{name} location",
+    address: "Address",
+    phone: "Phone",
+    hours: "Opening hours",
+    weekdays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    openNow: "Open now",
+    closedNow: "Closed now",
+    directions: "Get directions",
+    comingSoon: "We'll publish this country's locations here very soon.",
     morePending: "We'll publish the rest of this country's locations here very soon.",
     contactUs: "Message us and we'll point you to the nearest one",
   },
@@ -166,14 +172,8 @@ const en: Dictionary = {
   },
 
   footer: {
-    copyright: "© Copyright MoMentum Tech. All Rights Reserved.",
+    copyright: "© Copyright MoMentum Renal Care. All Rights Reserved.",
     social: "Social media",
-  },
-
-  notFound: {
-    title: "Page not found",
-    text: "The page you're looking for doesn't exist or has moved.",
-    home: "Back to home",
   },
 
   noticia: {

@@ -35,7 +35,7 @@ const pt: Dictionary = {
   },
 
   stats: {
-    titleHighlight: "MoMentum Salud Renal",
+    titleHighlight: "MoMentum Saúde Renal",
     title: "em números",
     pacientes: "Pacientes acompanhados",
     sedes: "Unidades",
@@ -53,7 +53,7 @@ const pt: Dictionary = {
 
   countries: {
     colombia: { name: "Colômbia", short: "Colômbia", tagline: "Nossa história, nossa origem.", sedesIn: "Unidades na Colômbia" },
-    //mexico: { name: "México", short: "México", tagline: "Mais perto das pessoas.", sedesIn: "Unidades no México" },
+    mexico: { name: "México", short: "México", tagline: "Mais perto das pessoas.", sedesIn: "Unidades no México" },
     guatemala: { name: "Guatemala", short: "Guatemala", tagline: "Novas oportunidades.", sedesIn: "Unidades na Guatemala" },
     ecuador: { name: "Equador", short: "Equador", tagline: "Compromisso em cada passo.", sedesIn: "Unidades no Equador" },
     brasil: { name: "Brasil", short: "Brasil", tagline: "Saúde renal sem fronteiras.", sedesIn: "Unidades no Brasil" },
@@ -90,10 +90,10 @@ const pt: Dictionary = {
   contacto: {
     title: "Fale conosco",
     subtitle: "Deixe seus dados e ajudamos você a encontrar a unidade e o atendimento de que precisa.",
-    points: ["Respondemos por e-mail", "Atendimento em 6 países", "Orientação para pacientes e famílias"],
-    emailDirect: "Fale direto por e-mail",
+    points: ["Respondemos pelo WhatsApp", "Atendimento em 6 países", "Orientação para pacientes e famílias"],
+    whatsappDirect: "Fale direto pelo WhatsApp",
     name: "Nome completo",
-    phone: "Telefone",
+    phone: "Telefone / WhatsApp",
     email: "E-mail",
     optional: "opcional",
     country: "País",
@@ -108,9 +108,8 @@ const pt: Dictionary = {
     message: "Mensagem",
     messagePlaceholder: "Conte-nos como podemos ajudar",
     consent: "Autorizo o tratamento dos meus dados pessoais para que entrem em contato comigo.",
-    submit: "Enviar por e-mail",
-    sent: "Abrimos seu e-mail com a mensagem pronta: falta só enviar. Se não abriu, escreva para",
-    subject: "Contato pelo site",
+    submit: "Enviar pelo WhatsApp",
+    sent: "Abrimos o WhatsApp com sua mensagem pronta para enviar. Obrigado por escrever!",
     greeting: "Olá, quero receber orientação da Momentum Salud Renal.",
   },
 
@@ -128,16 +127,23 @@ const pt: Dictionary = {
     subtitle: "Selecione um país ou use a busca para encontrar a unidade mais próxima.",
     sedesCount: { one: "unidade", other: "unidades" },
     pickCountry: "Escolha um país para ver suas unidades",
+    viewSedes: "Ver unidades",
+    prevCountry: "País anterior",
+    nextCountry: "Próximo país",
     allCountries: "Voltar a todos os países",
     search: "Buscar unidade, cidade ou endereço",
     cities: "Filtrar por cidade",
-    allCities: "Todas as cidades",
+    allCities: "Todas",
     noResults: "Não encontramos unidades que correspondam à sua busca.",
-    elsewhere: "Nada encontrado aqui. Estas unidades ficam em outro lugar:",
-    openMap: "Ver no Google Maps",
-    prevSede: "Unidade anterior",
-    nextSede: "Próxima unidade",
-    page: "{current} de {total}",
+    sedeName: "Unidade {name}",
+    address: "Endereço",
+    phone: "Telefone",
+    hours: "Horário",
+    weekdays: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"],
+    openNow: "Aberto agora",
+    closedNow: "Fechado agora",
+    directions: "Como chegar",
+    comingSoon: "Em breve publicaremos aqui as unidades deste país.",
     morePending: "Em breve publicaremos aqui as demais unidades deste país.",
     contactUs: "Fale conosco e indicaremos a mais próxima",
   },
@@ -166,14 +172,8 @@ const pt: Dictionary = {
   },
 
   footer: {
-    copyright: "© Copyright MoMentum Tech. Todos os direitos reservados.",
+    copyright: "© Copyright MoMentum Saúde Renal. Todos os direitos reservados.",
     social: "Redes sociais",
-  },
-
-  notFound: {
-    title: "Página não encontrada",
-    text: "A página que você procura não existe ou mudou de endereço.",
-    home: "Voltar ao início",
   },
 
   noticia: {
