@@ -89,10 +89,10 @@ const es = {
   contacto: {
     title: "Contáctanos",
     subtitle: "Déjanos tus datos y te ayudamos a encontrar la sede y la atención que necesitas.",
-    points: ["Te respondemos por WhatsApp", "Acompañamiento en 6 países", "Orientación para pacientes y familias"],
-    whatsappDirect: "Escríbenos directo por WhatsApp",
+    points: ["Te respondemos por correo", "Acompañamiento en 6 países", "Orientación para pacientes y familias"],
+    emailDirect: "Escríbenos directo por correo",
     name: "Nombre completo",
-    phone: "Teléfono / WhatsApp",
+    phone: "Teléfono",
     email: "Correo electrónico",
     optional: "opcional",
     country: "País",
@@ -107,9 +107,11 @@ const es = {
     message: "Mensaje",
     messagePlaceholder: "Cuéntanos en qué podemos ayudarte",
     consent: "Autorizo el tratamiento de mis datos personales para que me contacten.",
-    submit: "Enviar por WhatsApp",
-    sent: "Abrimos WhatsApp con tu mensaje listo para enviar. ¡Gracias por escribirnos!",
-    // Primera línea del mensaje que llega por WhatsApp.
+    submit: "Enviar por correo",
+    // Va seguido de la dirección de correo.
+    sent: "Abrimos tu correo con el mensaje listo: solo falta enviarlo. Si no se abrió, escríbenos a",
+    // Asunto (va seguido del motivo) y primera línea del correo.
+    subject: "Contacto desde la página web",
     greeting: "Hola, quiero recibir orientación de Momentum Salud Renal.",
   },
 
@@ -127,24 +129,16 @@ const es = {
     subtitle: "Selecciona un país o usa el buscador para encontrar la sede más cercana.",
     sedesCount: { one: "sede", other: "sedes" },
     pickCountry: "Elige un país para ver sus sedes",
-    viewSedes: "Ver sedes",
-    prevCountry: "País anterior",
-    nextCountry: "País siguiente",
     allCountries: "Volver a todos los países",
     search: "Buscar sede, ciudad o dirección",
     cities: "Filtrar por ciudad",
-    allCities: "Todas",
+    allCities: "Todas las ciudades",
     noResults: "No encontramos sedes que coincidan con tu búsqueda.",
-    // {name} se reemplaza por el nombre de la sede.
-    sedeName: "Sede {name}",
-    address: "Dirección",
-    phone: "Teléfono",
-    hours: "Horario",
-    weekdays: ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"],
-    openNow: "Abierto ahora",
-    closedNow: "Cerrado ahora",
-    directions: "Cómo llegar",
-    comingSoon: "Muy pronto publicaremos aquí las sedes de este país.",
+    elsewhere: "Aquí no hay coincidencias. Estas sedes están en otro lugar:",
+    openMap: "Ver en Google Maps",
+    prevSede: "Sede anterior",
+    nextSede: "Sede siguiente",
+    page: "{current} de {total}",
     morePending: "Muy pronto publicaremos aquí el resto de sedes de este país.",
     contactUs: "Escríbenos y te indicamos la más cercana",
   },
@@ -175,6 +169,12 @@ const es = {
   footer: {
     copyright: "© Copyright MoMentum Salud Renal. Todos los derechos reservados.",
     social: "Redes sociales",
+  },
+
+  notFound: {
+    title: "Página no encontrada",
+    text: "La página que buscas no existe o cambió de dirección.",
+    home: "Volver al inicio",
   },
 
   noticia: {

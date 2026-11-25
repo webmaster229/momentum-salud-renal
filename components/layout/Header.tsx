@@ -1,13 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import { logos } from "@/content/logos";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence } from "motion/react";
 import * as m from "motion/react-m";
 import { useEffect, useState } from "react";
 import { easeInCubic, easeOutQuint } from "@/components/motion/easing";
-import { logos } from "@/content/logos";
 import { containerWide } from "@/components/ui/container";
 import { localePath, stripLocale, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/es";
@@ -68,7 +68,7 @@ export function Header({ locale, t }: { locale: Locale; t: Dictionary["nav"] }) 
                     <Link
                       href={localePath(locale, item.path)}
                       aria-current={active ? "page" : undefined}
-                      className={`relative block py-2 text-nav font-bold transition-colors duration-150 hover:text-brand ${
+                      className={`relative block py-2.5 text-nav font-bold transition-colors duration-150 hover:text-brand ${
                         active
                           ? "text-brand after:absolute after:inset-x-0 after:bottom-0.5 after:h-[3px] after:rounded-full after:bg-gradient-to-r after:from-brand after:via-brand after:to-brand/0"
                           : "text-muted"
@@ -104,7 +104,8 @@ export function Header({ locale, t }: { locale: Locale; t: Dictionary["nav"] }) 
           <m.nav
             id="menu-movil"
             aria-label={t.label}
-            className="border-t border-mist bg-white px-5 pt-2 pb-6 shadow-[0_16px_24px_-16px_rgb(0_0_0/0.2)] sm:px-8 lg:hidden"
+            // Con scroll propio: en un celular horizontal el menú es más alto que la pantalla.
+            className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-mist bg-white px-5 pt-2 pb-6 shadow-[0_16px_24px_-16px_rgb(0_0_0/0.2)] sm:px-8 lg:hidden"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0, transition: { duration: 0.25, ease: easeOutQuint } }}
             exit={{ opacity: 0, y: -8, transition: { duration: 0.15, ease: easeInCubic } }}

@@ -1,24 +1,16 @@
 "use client";
 
 import Image from "next/image";
+import { logos } from "@/content/logos";
 import { AnimatePresence } from "motion/react";
 import * as m from "motion/react-m";
-import { useEffect, useState, useSyncExternalStore } from "react";
-import { easeOutQuint } from "@/components/motion/easing";
-import {
-  BuildingIcon,
-  ChevronIcon,
-  ClinicIcon,
-  ClockIcon,
-  DirectionsIcon,
-  MapPinIcon,
-  PhoneIcon,
-  SearchIcon,
-} from "@/components/ui/icons";
-import { logos } from "@/content/logos";
+import { useEffect, useId, useRef, useState } from "react";
+import { easeInCubic, easeOutQuint } from "@/components/motion/easing";
+import { CheckIcon, ChevronDownIcon, ChevronIcon, DirectionsIcon, MapPinIcon, SearchIcon } from "@/components/ui/icons";
 import { sedes, type Sede } from "@/content/sedes";
-import { countries, whatsappHref, type CountryId } from "@/content/site";
+import { countries, emailHref, site, type CountryId } from "@/content/site";
 import type { Dictionary } from "@/i18n/dictionaries/es";
+import { clean, findSedes, type SedeEnPais } from "./buscarSedes";
 import { MapPoints } from "./MapPoints";
 
 type Texts = Dictionary["encuentra"];
@@ -40,41 +32,21 @@ const slide = {
 const fill = (template: string, values: Record<string, string | number>) =>
   template.replace(/\{(\w+)\}/g, (_, key: string) => String(values[key] ?? ""));
 
-/** Sin tildes ni mayúsculas, para que "monteria" encuentre "Montería". */
-const normalize = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-
-// Minuto actual para "Abierto ahora": null en el servidor para que el HTML prerenderizado no dependa de la hora.
-const subscribeMinute = (onChange: () => void) => {
-  const id = window.setInterval(onChange, 30_000);
-  return () => window.clearInterval(id);
-};
-const currentMinute = () => Math.floor(Date.now() / 60_000);
-const noMinute = () => null;
-
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-function isOpenAt(hours: NonNullable<Sede["hours"]>, timeZone: string, minute: number) {
-  const parts = Object.fromEntries(
-    new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
-      .formatToParts(new Date(minute * 60_000))
-      .map((p) => [p.type, p.value]),
-  );
-  const day = WEEKDAYS.indexOf(parts.weekday) + 1;
-  const time = `${parts.hour}:${parts.minute}`;
-  return hours.some((h) => day >= h.days[0] && day <= h.days[1] && time >= h.open && time < h.close);
-}
-
-function formatHours(hours: NonNullable<Sede["hours"]>, weekdays: string[]) {
-  const time = (hhmm: string) => hhmm.replace(/^0(\d)/, "$1");
-  return hours.map(({ days: [from, to], open, close }) => {
-    const days = from === to ? weekdays[from - 1] : `${weekdays[from - 1]} – ${weekdays[to - 1]}`;
-    return `${days}: ${time(open)} – ${time(close)}`;
-  });
-}
+const longest = (texts: string[]) => texts.reduce((a, b) => (b.length > a.length ? b : a), "");
 
 function mapsHref(sede: Sede, countryName: string) {
-  const query = sede.address ? `${sede.address}, ${sede.city}, ${countryName}` : (sede.mapsQuery ?? `${sede.name}, ${sede.city}, ${countryName}`);
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${sede.address}, ${sede.city}, ${countryName}`)}`;
+}
+
+/** En celular y tablet la lista y el panel van uno debajo del otro: sin esto, tocar un país no parece hacer nada. */
+function revealWhenStacked(element: HTMLElement | null) {
+  if (!window.matchMedia("(min-width: 1024px)").matches) element?.scrollIntoView({ block: "start" });
+}
+
+/** Alterna los países: si no, sin país elegido pasarían primero las 76 sedes de Colombia. */
+function mixByCountry(order: CountryId[]): SedeEnPais[] {
+  const rounds = Math.max(...order.map((id) => sedes[id].length));
+  return Array.from({ length: rounds }).flatMap((_, i) => order.flatMap((id) => (sedes[id][i] ? [{ ...sedes[id][i], country: id }] : [])));
 }
 
 type EncuentraSedeProps = {
@@ -88,45 +60,71 @@ type EncuentraSedeProps = {
 
 export function EncuentraSede({ t, countryTexts, mapLabel, locale, order, heading }: EncuentraSedeProps) {
   const [country, setCountry] = useState<CountryId | null>(null);
-  const [city, setCity] = useState<string | null>(null);
+  const [city, setCity] = useState("");
   const [query, setQuery] = useState("");
-  const [[slideIndex, direction], setSlide] = useState<[number, number]>([0, 1]);
-  // Deja de pasar sola cuando la persona usa las flechas o los puntos.
+  const [[index, direction], setPage] = useState<[number, number]>([0, 1]);
+  // Deja de pasar sola cuando la persona usa las flechas.
   const [autoplay, setAutoplay] = useState(true);
   const [paused, setPaused] = useState(false);
-  const minute = useSyncExternalStore(subscribeMinute, currentMinute, noMinute);
+  const headingRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (country || !autoplay || paused) return;
-    const id = window.setInterval(() => setSlide(([i]) => [(i + 1) % order.length, 1]), AUTOPLAY_MS);
-    return () => window.clearInterval(id);
-  }, [country, autoplay, paused, order.length]);
+  const everywhere = mixByCountry(order);
+  const scope = country ? everywhere.filter((s) => s.country === country) : everywhere;
+  const { results, elsewhere } = findSedes(
+    city ? scope.filter((s) => s.city === city) : scope,
+    // El país elegido primero, para que sus sedes salgan antes que las de otros.
+    country ? [...scope, ...everywhere.filter((s) => s.country !== country)] : everywhere,
+    query,
+  );
+  const current = results[index];
+  // Altura de todo el país, no de los resultados: si no, el buscador se movería mientras se escribe.
+  const sizing = [...scope, ...results];
+  const cities = country ? [...new Set(sedes[country].map((s) => s.city))].sort(new Intl.Collator(locale).compare) : [];
 
-  const count = (n: number) => `${n} ${n === 1 ? t.sedesCount.one : t.sedesCount.other}`;
   const totalOf = (id: CountryId) => countries.find((c) => c.id === id)?.sedes ?? 0;
+  const count = (n: number) => `${n} ${n === 1 ? t.sedesCount.one : t.sedesCount.other}`;
+  const placeOf = (s: SedeEnPais) => `${s.city}, ${countryTexts[s.country].name}`;
   const shortNames = Object.fromEntries(countries.map((c) => [c.id, countryTexts[c.id].short])) as Record<CountryId, string>;
-  const slideCountry = order[slideIndex];
+
+  const playing = !country && !query.trim() && autoplay && !paused;
+  useEffect(() => {
+    if (!playing) return;
+    const id = window.setInterval(() => setPage(([i]) => [(i + 1) % results.length, 1]), AUTOPLAY_MS);
+    return () => window.clearInterval(id);
+  }, [playing, results.length]);
 
   const chooseCountry = (id: CountryId | null) => {
     setCountry(id);
-    setCity(null);
+    setCity("");
     setQuery("");
+    setPage([0, 1]);
   };
-  const goTo = (index: number, step: number) => {
+  const chooseCity = (value: string) => {
+    setCity(value);
+    setPage([0, 1]);
+  };
+  const search = (value: string) => {
+    setQuery(value);
+    setPage([0, 1]);
+  };
+  const step = (delta: number) => {
     setAutoplay(false);
-    setSlide([(index + order.length) % order.length, step]);
+    setPage(([i]) => [(i + delta + results.length) % results.length, delta]);
   };
 
   return (
     <section
       id="encuentra"
       aria-labelledby="encuentra-title"
-      className="relative isolate overflow-hidden bg-brand py-16 lg:py-[clamp(4rem,5.6vw,6.75rem)]"
+      className="relative isolate overflow-hidden bg-brand py-16 lg:pt-[clamp(5.5rem,5.6vw,6.75rem)] lg:pb-[clamp(4rem,5.6vw,6.75rem)]"
     >
       <Image src="/images/fondo-mapa.jpg" alt="" fill sizes="100vw" className="-z-10 hidden -scale-x-100 object-cover object-left-top lg:block" />
 
       <div className="mx-auto grid w-full max-w-[1840px] gap-x-8 gap-y-8 px-5 sm:px-8 lg:grid-cols-2 lg:gap-y-[clamp(2rem,3vw,3.5rem)] lg:px-12 xl:grid-cols-[clamp(17rem,24vw,26rem)_minmax(0,1fr)_clamp(21rem,27vw,30rem)] 2xl:px-[3.6rem]">
-        <div className="lg:col-span-2">{heading}</div>
+        <div ref={headingRef} className="lg:col-span-2">
+          {heading}
+        </div>
 
         <div className="self-start xl:self-center">
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -136,9 +134,12 @@ export function EncuentraSede({ t, countryTexts, mapLabel, locale, order, headin
                 <li key={id}>
                   <button
                     type="button"
-                    onClick={() => chooseCountry(active ? null : id)}
+                    onClick={() => {
+                      chooseCountry(active ? null : id);
+                      if (!active) revealWhenStacked(panelRef.current);
+                    }}
                     aria-pressed={active}
-                    className={`group flex h-14 w-full items-center gap-3 rounded-xl border-[1.5px] border-white px-5 text-left transition-[background-color,color,box-shadow] duration-200 active:scale-[0.99] ${
+                    className={`group flex min-h-14 w-full items-center gap-3 rounded-xl border-[1.5px] border-white px-5 py-2 text-left leading-tight transition-[background-color,color,box-shadow] duration-200 active:scale-[0.99] ${
                       active ? "bg-white text-brand shadow-card" : "text-white hover:bg-white/10"
                     }`}
                   >
@@ -148,7 +149,8 @@ export function EncuentraSede({ t, countryTexts, mapLabel, locale, order, headin
                       <span className="hidden xl:inline">{countryTexts[id].short}</span>
                     </span>
                     <span className="text-[0.95rem] font-bold">{count(totalOf(id))}</span>
-                    <ChevronIcon className="h-4 w-3 transition-transform duration-200 ease-out group-hover:translate-x-0.5" />
+                    {/* Apunta hacia abajo mientras el panel va debajo de la lista. */}
+                    <ChevronIcon className="h-4 w-3 rotate-90 transition-transform duration-200 ease-out group-hover:translate-x-0.5 lg:rotate-0" />
                   </button>
                 </li>
               );
@@ -159,90 +161,124 @@ export function EncuentraSede({ t, countryTexts, mapLabel, locale, order, headin
         <MapPoints
           labels={shortNames}
           ariaLabel={mapLabel}
-          activeId={country ?? slideCountry}
+          activeId={current?.country ?? country}
           onSelect={chooseCountry}
           // Márgenes negativos: los bordes de la imagen del mapa están vacíos.
           className="hidden xl:col-start-2 xl:row-start-2 xl:-mx-[2vw] xl:-mt-[4vw] xl:block xl:w-[calc(100%+4vw)] xl:max-w-[52rem] xl:self-center xl:justify-self-center"
         />
 
-        <div className="rounded-2xl bg-white p-5 shadow-card sm:p-6 lg:col-start-2 lg:row-start-2 lg:self-start xl:col-start-3 xl:row-span-2 xl:row-start-1 xl:self-center">
+        <div
+          ref={panelRef}
+          className="rounded-2xl bg-white p-5 shadow-card sm:p-6 lg:col-start-2 lg:row-start-2 lg:self-start xl:col-start-3 xl:row-span-2 xl:row-start-1 xl:self-center"
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+          onFocus={() => setPaused(true)}
+          onBlur={() => setPaused(false)}
+        >
           <AnimatePresence mode="wait" initial={false}>
-            {country ? (
-              <m.div key={country} {...swap}>
-                <CountrySedes
-                  t={t}
-                  country={country}
-                  countryTexts={countryTexts}
-                  locale={locale}
-                  city={city}
-                  query={query}
-                  minute={minute}
-                  count={count}
-                  onBack={() => chooseCountry(null)}
-                  onCity={setCity}
-                  onQuery={setQuery}
-                />
-              </m.div>
-            ) : (
-              <m.div
-                key="presentacion"
-                {...swap}
-                className="flex flex-col items-center px-1 py-3 text-center"
-                onMouseEnter={() => setPaused(true)}
-                onMouseLeave={() => setPaused(false)}
-                onFocus={() => setPaused(true)}
-                onBlur={() => setPaused(false)}
-              >
-                {(() => {
-                  const logo = logos[locale as keyof typeof logos] ?? logos.es;
-                  return <Image src={logo.src} alt={logo.alt} width={logo.width} height={logo.height} className="h-auto w-[min(17rem,85%)]" />;
-                })()}
-                <p className="mt-3 text-sm text-ink/60">{t.pickCountry}</p>
+            <m.div key={country ?? "todas"} {...swap}>
+              {country ? (
+                <div className="flex items-center gap-3 border-b border-mist pb-4">
+                  <RoundButton
+                    label={t.allCountries}
+                    onClick={() => {
+                      chooseCountry(null);
+                      revealWhenStacked(headingRef.current);
+                    }}
+                    flip
+                    small
+                  />
+                  <h3 className="flex-1 text-[clamp(1.125rem,0.95rem+0.4vw,1.375rem)] leading-tight font-bold text-ink">{countryTexts[country].sedesIn}</h3>
+                  <span className="shrink-0 rounded-full bg-cream px-3 py-1 text-sm font-bold text-brand">{count(totalOf(country))}</span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center pt-1 text-center">
+                  <Image src={(logos[locale as keyof typeof logos] ?? logos.es).src} alt={(logos[locale as keyof typeof logos] ?? logos.es).alt} width={(logos[locale as keyof typeof logos] ?? logos.es).width} height={(logos[locale as keyof typeof logos] ?? logos.es).height} className="h-auto w-[min(17rem,85%)]" />
+                  <p className="mt-3 text-sm text-ink/60">{t.pickCountry}</p>
+                </div>
+              )}
 
-                <div aria-live={autoplay ? "off" : "polite"} className="relative mt-6 grid w-full overflow-hidden">
+              <label className="relative mt-4 block">
+                <span className="sr-only">{t.search}</span>
+                <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-muted" />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => search(e.target.value)}
+                  // En el celular, "Buscar" esconde el teclado para dejar ver el resultado.
+                  onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+                  placeholder={t.search}
+                  autoComplete="off"
+                  enterKeyHint="search"
+                  className="h-11 w-full rounded-lg border border-mist bg-white pr-3 pl-11 text-base text-ink transition-colors outline-none placeholder:text-muted focus:border-brand"
+                />
+              </label>
+
+              {cities.length > 1 ? <CitySelect cities={cities} value={city} onChange={chooseCity} label={t.cities} allLabel={t.allCities} /> : null}
+
+              {elsewhere ? <p className="mt-3 text-center text-sm text-ink/75">{t.elsewhere}</p> : null}
+
+              <div aria-live={playing ? "off" : "polite"} className="relative mt-4 grid overflow-hidden">
+                {/* Copia invisible con los textos más largos: reserva la altura para que la página no salte al cambiar de sede. */}
+                <div aria-hidden className="invisible flex flex-col items-center px-4 py-5 text-center [grid-area:1/1]">
+                  <SlideBody
+                    name={longest(sizing.map((s) => s.name))}
+                    place={longest(sizing.map(placeOf))}
+                    address={longest(sizing.map((s) => s.address))}
+                    href="#"
+                    action={t.openMap}
+                  />
+                </div>
+                {current ? (
                   <AnimatePresence mode="popLayout" initial={false} custom={direction}>
                     <m.div
-                      key={slideCountry}
+                      key={current.name}
                       custom={direction}
                       variants={slide}
                       initial="enter"
                       animate="center"
                       exit="exit"
-                      className="rounded-xl bg-cream px-5 py-6"
+                      className="flex flex-col items-center justify-center rounded-xl bg-cream px-4 py-5 text-center [grid-area:1/1]"
                     >
-                      <p className="text-[clamp(1.375rem,1.1rem+0.6vw,1.75rem)] leading-tight font-bold text-ink">{countryTexts[slideCountry].name}</p>
-                      <p className="mt-1 font-bold text-brand">{count(totalOf(slideCountry))}</p>
-                      <p className="mt-2 text-ink/70">{countryTexts[slideCountry].tagline}</p>
-                      <button
-                        type="button"
-                        onClick={() => chooseCountry(slideCountry)}
-                        className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-lg bg-brand px-5 text-[0.9375rem] font-bold text-white transition duration-150 hover:bg-brand-dark active:scale-[0.97]"
-                      >
-                        {t.viewSedes}
-                        <ChevronIcon className="h-3.5 w-2.5" />
-                      </button>
+                      <SlideBody
+                        name={current.name}
+                        place={placeOf(current)}
+                        address={current.address}
+                        href={mapsHref(current, countryTexts[current.country].name)}
+                        action={t.openMap}
+                      />
                     </m.div>
                   </AnimatePresence>
-                </div>
-
-                <div className="mt-5 flex items-center gap-4">
-                  <RoundButton label={t.prevCountry} onClick={() => goTo(slideIndex - 1, -1)} flip />
-                  <div className="flex items-center gap-1.5">
-                    {order.map((id, i) => (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => goTo(i, i >= slideIndex ? 1 : -1)}
-                        aria-label={countryTexts[id].name}
-                        aria-current={i === slideIndex ? "true" : undefined}
-                        className={`h-2 rounded-full transition-[width,background-color] duration-300 ${i === slideIndex ? "w-6 bg-brand" : "w-2 bg-mist hover:bg-line"}`}
-                      />
-                    ))}
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-3 rounded-xl bg-cream px-4 py-5 text-center [grid-area:1/1]">
+                    <p className="leading-snug text-ink/75">{t.noResults}</p>
+                    <a href={emailHref} className="leading-snug font-bold text-brand underline-offset-2 hover:underline">
+                      {t.contactUs}
+                    </a>
                   </div>
-                  <RoundButton label={t.nextCountry} onClick={() => goTo(slideIndex + 1, 1)} />
+                )}
+              </div>
+
+              {/* Se oculta sin quitarla: el panel conserva su altura mientras se escribe. */}
+              {scope.length > 1 || results.length > 1 ? (
+                <div className={`mt-4 flex items-center justify-center gap-3 ${results.length > 1 ? "" : "invisible"}`}>
+                  <RoundButton label={t.prevSede} onClick={() => step(-1)} flip />
+                  <span className="min-w-24 text-center text-sm font-bold text-ink/70 tabular-nums">
+                    {fill(t.page, { current: index + 1, total: results.length })}
+                  </span>
+                  <RoundButton label={t.nextSede} onClick={() => step(1)} />
                 </div>
-              </m.div>
-            )}
+              ) : null}
+
+              {country && sedes[country].length < totalOf(country) ? (
+                <p className="mt-4 border-t border-mist pt-4 text-sm text-ink/75">
+                  {t.morePending}{" "}
+                  <a href={emailHref} className="font-bold text-brand underline-offset-2 hover:underline">
+                    {t.contactUs}
+                  </a>
+                </p>
+              ) : null}
+            </m.div>
           </AnimatePresence>
         </div>
       </div>
@@ -250,201 +286,146 @@ export function EncuentraSede({ t, countryTexts, mapLabel, locale, order, headin
   );
 }
 
-type CountrySedesProps = {
-  t: Texts;
-  country: CountryId;
-  countryTexts: Dictionary["countries"];
-  locale: string;
-  city: string | null;
-  query: string;
-  minute: number | null;
-  count: (n: number) => string;
-  onBack: () => void;
-  onCity: (city: string | null) => void;
-  onQuery: (query: string) => void;
+type CitySelectProps = {
+  cities: string[];
+  value: string;
+  onChange: (city: string) => void;
+  label: string;
+  allLabel: string;
 };
 
-function CountrySedes({ t, country, countryTexts, locale, city, query, minute, count, onBack, onCity, onQuery }: CountrySedesProps) {
-  const info = countries.find((c) => c.id === country) ?? countries[0];
-  const listed = sedes.filter((s) => s.country === country);
-  const cities = [...new Set(listed.map((s) => s.city))].sort(new Intl.Collator(locale).compare);
-  const q = normalize(query.trim());
-  const results = listed.filter(
-    (s) => (!city || s.city === city) && (!q || normalize(`${s.name} ${s.city} ${s.address ?? ""}`).includes(q)),
-  );
+/** Lista propia: un `<select>` la abre el navegador, y con 45 ciudades a veces hacia arriba. */
+function CitySelect({ cities, value, onChange, label, allLabel }: CitySelectProps) {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const listId = useId();
+  const options = ["", ...cities];
+
+  useEffect(() => {
+    if (!open) return;
+    // Si no cabe bajo el botón, sube la página en vez de abrirse hacia arriba.
+    const overflow = (listRef.current?.getBoundingClientRect().bottom ?? 0) - window.innerHeight;
+    if (overflow > 0) window.scrollBy({ top: overflow + 12 });
+    const onPointer = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
+    document.addEventListener("pointerdown", onPointer);
+    return () => document.removeEventListener("pointerdown", onPointer);
+  }, [open]);
+
+  useEffect(() => {
+    const list = listRef.current;
+    const option = list?.children[active] as HTMLElement | undefined;
+    if (!list || !option) return;
+    if (option.offsetTop < list.scrollTop) list.scrollTop = option.offsetTop;
+    else if (option.offsetTop + option.offsetHeight > list.scrollTop + list.clientHeight) list.scrollTop = option.offsetTop + option.offsetHeight - list.clientHeight;
+  }, [open, active]);
+
+  const show = () => {
+    setActive(options.indexOf(value));
+    setOpen(true);
+  };
+  const choose = (city: string) => {
+    onChange(city);
+    setOpen(false);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Tab") return setOpen(false);
+    const letter = e.key.length === 1 ? clean(e.key) : "";
+    if (!["ArrowDown", "ArrowUp", "Home", "End", "Enter", "Escape"].includes(e.key) && e.key !== " " && !letter) return;
+    e.preventDefault();
+
+    if (letter) {
+      const matches = (city: string) => clean(city).startsWith(letter);
+      const next = options.findIndex((city, i) => i > active && matches(city));
+      const found = next >= 0 ? next : options.findIndex(matches);
+      if (found < 0) return;
+      setActive(found);
+      return setOpen(true);
+    }
+    if (e.key === "Escape") return setOpen(false);
+    if (!open) return show();
+    if (e.key === "Enter" || e.key === " ") return choose(options[active]);
+    if (e.key === "Home") return setActive(0);
+    if (e.key === "End") return setActive(options.length - 1);
+    setActive(Math.min(Math.max(active + (e.key === "ArrowDown" ? 1 : -1), 0), options.length - 1));
+  };
 
   return (
-    <>
-      <div className="flex items-center gap-3 border-b border-mist pb-4">
-        <RoundButton label={t.allCountries} onClick={onBack} flip small />
-        <h3 className="flex-1 text-[clamp(1.125rem,0.95rem+0.4vw,1.375rem)] leading-tight font-bold text-ink">{countryTexts[country].sedesIn}</h3>
-        <span className="shrink-0 rounded-full bg-cream px-3 py-1 text-sm font-bold text-brand">{count(info.sedes)}</span>
-      </div>
+    <div ref={ref} className="relative mt-2">
+      <button
+        type="button"
+        role="combobox"
+        aria-label={label}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? listId : undefined}
+        aria-activedescendant={open ? `${listId}-${active}` : undefined}
+        onClick={() => (open ? setOpen(false) : show())}
+        onKeyDown={onKeyDown}
+        className={`flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-lg border bg-white pr-3.5 pl-3.5 text-left text-base text-ink transition-colors outline-none focus:border-brand ${
+          open ? "border-brand" : "border-mist"
+        }`}
+      >
+        <span className="truncate">{value || allLabel}</span>
+        <ChevronDownIcon className={`size-5 shrink-0 text-muted transition-transform duration-200 ease-out ${open ? "rotate-180" : ""}`} />
+      </button>
 
-      {listed.length === 0 ? (
-        <div className="py-8 text-center">
-          <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-cream text-brand">
-            <ClinicIcon className="size-7" />
-          </span>
-          <p className="mx-auto mt-4 max-w-xs text-ink">{t.comingSoon}</p>
-          <a
-            href={whatsappHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-5 inline-flex min-h-10 items-center rounded-lg bg-brand px-4 text-[0.9375rem] font-bold text-white transition hover:bg-brand-dark active:scale-[0.97]"
+      <AnimatePresence>
+        {open ? (
+          <m.ul
+            ref={listRef}
+            id={listId}
+            role="listbox"
+            aria-label={label}
+            // Sin esto, tocar una opción le quita el foco al botón.
+            onMouseDown={(e) => e.preventDefault()}
+            className="absolute top-full right-0 left-0 z-20 mt-1 max-h-64 origin-top overflow-y-auto overscroll-contain rounded-xl bg-white py-1.5 shadow-card ring-1 ring-mist"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0, transition: { duration: 0.18, ease: easeOutQuint } }}
+            exit={{ opacity: 0, transition: { duration: 0.12, ease: easeInCubic } }}
           >
-            {t.contactUs}
-          </a>
-        </div>
-      ) : (
-        <>
-          <label className="relative mt-4 block">
-            <span className="sr-only">{t.search}</span>
-            <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-muted" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => onQuery(e.target.value)}
-              placeholder={t.search}
-              className="h-11 w-full rounded-lg border border-mist bg-white pr-3 pl-11 text-[0.95rem] text-ink transition-colors outline-none placeholder:text-muted focus:border-brand"
-            />
-          </label>
-
-          {cities.length > 1 ? (
-            <div role="group" aria-label={t.cities} className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1">
-              {[null, ...cities].map((value) => {
-                const active = city === value;
-                return (
-                  <button
-                    key={value ?? "todas"}
-                    type="button"
-                    onClick={() => onCity(value)}
-                    aria-pressed={active}
-                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-bold transition-colors duration-150 ${
-                      active ? "bg-brand text-white" : "bg-mist/70 text-ink/75 hover:bg-cream hover:text-brand"
-                    }`}
-                  >
-                    {value ?? t.allCities}
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
-
-          {results.length > 0 ? (
-            <ul aria-live="polite" className="mt-4 space-y-3 lg:max-h-[27rem] lg:overflow-y-auto lg:pr-1">
-              {results.map((sede) => (
-                <li key={sede.id} className="rounded-xl border border-mist p-4">
-                  <SedeCard sede={sede} t={t} countryName={countryTexts[country].name} timeZone={info.timeZone} minute={minute} />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p aria-live="polite" className="py-6 text-center text-ink/70">
-              {t.noResults}
-            </p>
-          )}
-
-          {listed.length < info.sedes ? (
-            <p className="mt-4 border-t border-mist pt-4 text-sm text-ink/75">
-              {t.morePending}{" "}
-              <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="font-bold text-brand underline-offset-2 hover:underline">
-                {t.contactUs}
-              </a>
-            </p>
-          ) : null}
-        </>
-      )}
-    </>
+            {options.map((city, i) => (
+              <li
+                key={city}
+                id={`${listId}-${i}`}
+                role="option"
+                aria-selected={city === value}
+                onClick={() => choose(city)}
+                className={`flex min-h-11 cursor-pointer items-center justify-between gap-3 px-3.5 py-2 leading-tight transition-colors hover:bg-cream ${
+                  i === active ? "bg-cream" : ""
+                } ${city === value ? "font-bold text-brand" : "text-ink/80"}`}
+              >
+                {city || allLabel}
+                {city === value ? <CheckIcon className="size-4 shrink-0" /> : null}
+              </li>
+            ))}
+          </m.ul>
+        ) : null}
+      </AnimatePresence>
+    </div>
   );
 }
 
-type SedeCardProps = {
-  sede: Sede;
-  t: Texts;
-  countryName: string;
-  timeZone: string;
-  minute: number | null;
-};
-
-function SedeCard({ sede, t, countryName, timeZone, minute }: SedeCardProps) {
-  const open = sede.hours?.length && minute !== null ? isOpenAt(sede.hours, timeZone, minute) : null;
-  const hasDetails = Boolean(sede.address || sede.phone || sede.hours?.length);
-
+function SlideBody({ name, place, address, href, action }: { name: string; place: string; address: string; href: string; action: string }) {
   return (
     <>
-      <div className="flex items-start gap-3">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-cream text-brand">
-          <ClinicIcon className="size-6" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h4 className="text-[1.0625rem] leading-tight font-bold text-ink">{fill(t.sedeName, { name: sede.name })}</h4>
-          <span className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-mist/70 px-2 py-0.5 text-xs font-bold text-ink/70">
-            <BuildingIcon className="size-3.5" />
-            {sede.city}
-          </span>
-        </div>
-        {open === null ? null : (
-          <span className={`inline-flex shrink-0 items-center gap-1.5 text-xs font-bold ${open ? "text-green-700" : "text-ink/60"}`}>
-            <span aria-hidden className={`size-2 rounded-full ${open ? "bg-green-600" : "bg-muted"}`} />
-            {open ? t.openNow : t.closedNow}
-          </span>
-        )}
-      </div>
-
-      {hasDetails ? (
-        <dl className="mt-3 space-y-2 rounded-lg bg-[#f7f7f7] p-3 text-sm text-ink/80">
-          {sede.address ? (
-            <div className="flex gap-2.5">
-              <dt>
-                <span className="sr-only">{t.address}</span>
-                <MapPinIcon className="mt-px size-4 text-brand" />
-              </dt>
-              <dd>{sede.address}</dd>
-            </div>
-          ) : null}
-          {sede.phone ? (
-            <div className="flex gap-2.5">
-              <dt>
-                <span className="sr-only">{t.phone}</span>
-                <PhoneIcon className="mt-px size-4 text-brand" />
-              </dt>
-              <dd>
-                <a href={`tel:${sede.phone.replace(/[^\d+]/g, "")}`} className="hover:text-brand">
-                  {sede.phone}
-                </a>
-              </dd>
-            </div>
-          ) : null}
-          {sede.hours?.length ? (
-            <div className="flex gap-2.5">
-              <dt>
-                <span className="sr-only">{t.hours}</span>
-                <ClockIcon className="mt-px size-4 text-brand" />
-              </dt>
-              <dd>
-                {formatHours(sede.hours, t.weekdays).map((line) => (
-                  <span key={line} className="block">
-                    {line}
-                  </span>
-                ))}
-              </dd>
-            </div>
-          ) : null}
-        </dl>
-      ) : null}
-
-      <div className="mt-3 flex justify-end">
-        <a
-          href={mapsHref(sede, countryName)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-brand px-3.5 text-sm font-bold text-white transition hover:bg-brand-dark active:scale-[0.97]"
-        >
-          <DirectionsIcon className="size-4" />
-          {t.directions}
-        </a>
-      </div>
+      <p className="text-[clamp(1.125rem,0.95rem+0.45vw,1.5rem)] leading-tight font-bold text-ink">{name}</p>
+      <p className="mt-1 leading-snug font-bold text-brand">{place}</p>
+      <p className="mt-3 flex items-start justify-center gap-1.5 text-[0.95rem] leading-snug text-ink/75">
+        <MapPinIcon className="mt-0.5 size-4 shrink-0 text-brand" />
+        <span>{address}</span>
+      </p>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand px-5 text-[0.9375rem] font-bold text-white transition duration-150 hover:bg-brand-dark active:scale-[0.97]"
+      >
+        <DirectionsIcon className="size-4 shrink-0" />
+        {action}
+      </a>
     </>
   );
 }
@@ -456,7 +437,7 @@ function RoundButton({ label, onClick, flip, small }: { label: string; onClick: 
       onClick={onClick}
       aria-label={label}
       className={`inline-flex shrink-0 items-center justify-center rounded-full bg-mist/80 text-ink/70 transition duration-150 hover:bg-cream hover:text-brand active:scale-95 ${
-        small ? "size-9" : "size-10"
+        small ? "size-10" : "size-11"
       }`}
     >
       <ChevronIcon className={`h-4 w-3 ${flip ? "rotate-180" : ""}`} />
