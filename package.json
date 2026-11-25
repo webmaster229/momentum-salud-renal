@@ -10,7 +10,6 @@
     "css:watch": "tailwindcss -i ./styles/tailwind.css -o ./app/globals.css --watch",
     "predev": "npm run css || echo css-omitido",
     "dev": "next dev",
-    "prebuild": "npm run css || echo css-omitido",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
